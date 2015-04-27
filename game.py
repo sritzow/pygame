@@ -96,6 +96,21 @@ class App:
 				if block.getTile() == 2:
 					color = color = (0, 0, 255)
 				pygame.draw.rect(self._display_surf, color, (blockX * 10, blockY * 10 + 15, 10, 10))
+			
+		i = 0
+		for item in self.player.getItems():
+			if self.player.getSelected() != None and self.player.getSelected().getId() == item.getId():
+				pygame.draw.rect(self._display_surf, (125, 225, 125), [10 + i * 25 + 5, 10, 25, 25])
+			else:
+				pygame.draw.rect(self._display_surf, (225, 225, 225), [10 + i * 25 + 5, 10, 25, 25])
+			pygame.draw.rect(self._display_surf, (0, 0, 0), [10 + i * 25 + 5, 10, 25, 25], 2)
+			color = (255, 255, 255)
+			if item.getId() == 1:
+				color = color = (255, 0, 255)
+			if item.getId() == 2:
+				color = color = (0, 0, 255)
+			pygame.draw.rect(self._display_surf, color, [10 + i * 25 + 10, 10 + 5, 15, 15])
+			i += 1
 		#render player		
 		body = self.player.getBody()
 		pygame.draw.rect(self._display_surf, (125, 125, 125), (body.position.x, body.position.y, 10, 20))
@@ -113,10 +128,10 @@ class App:
 	def on_execute(self):
 		if self.on_init() == False:
 			self._running = False
-			
+		self.clock = pygame.time.Clock()
 		#generate map and create player
 		self.map = Map("test")
-		self.map.generate(100, 75)
+		self.map.generate(200, 75)
 		self.boxes = []
 		self.createPlayer(100, 100)
 		
@@ -136,6 +151,7 @@ class App:
 		
 		#while out game is playing
 		while( self._running ):
+			self.clock.tick(60)
 			#step physics
 			self.world.Step(timeStep, vel_iters, pos_iters)
 			#clear forces on objects
@@ -155,3 +171,30 @@ class App:
 if __name__ == "__main__" :
 	theApp = App()
 	theApp.on_execute()
+	
+class Camera(object):
+    def __init__(self, camera_func, width, height):
+        self.camera_func = camera_func
+        self.state = Rect(0, 0, width, height)
+
+    def apply(self, target):
+        return target.rect.move(self.state.topleft)
+
+    def update(self, target):
+        self.state = self.camera_func(self.state, target.rect)
+		
+def simple_camera(camera, target_rect):
+    l, t, _, _ = target_rect
+    _, _, w, h = camera
+    return Rect(-l+HALF_WIDTH, -t+HALF_HEIGHT, w, h)
+
+def complex_camera(camera, target_rect):
+    l, t, _, _ = target_rect
+    _, _, w, h = camera
+    l, t, _, _ = -l+HALF_WIDTH, -t+HALF_HEIGHT, w, h
+
+    l = min(0, l)                           # stop scrolling at the left edge
+    l = max(-(camera.width-WIN_WIDTH), l)   # stop scrolling at the right edge
+    t = max(-(camera.height-WIN_HEIGHT), t) # stop scrolling at the bottom
+    t = min(0, t)                           # stop scrolling at the top
+    return Rect(l, t, w, h)
